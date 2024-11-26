@@ -1,4 +1,4 @@
-# SniffMyShit 🐾💩
+# SniffMyShit
 
 Find it, sniff it.
 
