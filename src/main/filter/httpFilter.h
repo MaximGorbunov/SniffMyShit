@@ -53,7 +53,7 @@ class HttpFilter : public Handler {
   std::vector<std::string> *response_status_filters;
   std::unordered_map<std::string, std::string> *response_headers_filters;
   std::vector<std::string> *response_body_filters;
-  void print_request_response(const HttpEntity *request, const HttpEntity *response);
+  static void print_request_response(const HttpEntity *request, const HttpEntity *response);
 };
 }
 #endif //SNIFFMYSHIT_SRC_MAIN_FILTER_HTTPFILTER_H_

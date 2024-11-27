@@ -11,10 +11,10 @@ struct Data {
 
 class Handler {
  public:
-  explicit Handler(std::unique_ptr<Handler> next_) : next_(std::move(next_)) {}
+  explicit Handler(std::unique_ptr<Handler> a_next_) : next_(std::move(a_next_)) {}
   virtual ~Handler() = default;
   virtual void handle(std::unique_ptr<Data> data) = 0;
-  void pass_next(std::unique_ptr<Data> data) {
+  void pass_next(std::unique_ptr<Data> data) const {
     if (next_ != nullptr) {
       next_->handle(std::move(data));
     }

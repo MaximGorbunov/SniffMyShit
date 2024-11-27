@@ -14,12 +14,12 @@ using pcpp::RawPacket, pcpp::PcapLiveDevice, SniffMyShit::Handler, SniffMyShit::
 
 ConcurrentQueue<RawPacket> packet_queue{};
 
-static void processPacket(RawPacket *packet, [[maybe_unused]] PcapLiveDevice *dev, void *cookie) {
+static void processPacket(const RawPacket *packet, [[maybe_unused]] PcapLiveDevice *dev, void *cookie) {
   packet_queue.push(*packet);
 }
 
 PcapLiveDevice *chooseLiveDevice(const string &chosenInterface) {
-  PcapLiveDeviceList &list = PcapLiveDeviceList::getInstance();
+  const PcapLiveDeviceList &list = PcapLiveDeviceList::getInstance();
   PcapLiveDevice *device;
   if (!chosenInterface.empty()) {
     device = list.getPcapLiveDeviceByName(chosenInterface);
@@ -45,8 +45,8 @@ PcapLiveDevice *chooseLiveDevice(const string &chosenInterface) {
 
 int main(int argc, char *argv[]) {
   auto options = parseOptions(argc, argv);
-  pcpp::PcapLiveDevice *device = chooseLiveDevice(options->interface);
-  if (!device->open(pcpp::PcapLiveDevice::DeviceConfiguration{pcpp::PcapLiveDevice::Promiscuous, 0, 10 * 1024 * 1024,
+  PcapLiveDevice *device = chooseLiveDevice(options->interface);
+  if (!device->open(PcapLiveDevice::DeviceConfiguration{pcpp::PcapLiveDevice::Promiscuous, 0, 10 * 1024 * 1024,
                                                               pcpp::PcapLiveDevice::PCPP_INOUT, 10 * 1024 * 1024})) {
     std::cout << "Failed to open device!" << std::endl;
     return 1;

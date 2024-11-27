@@ -1,6 +1,7 @@
 #include "options.h"
+#include <algorithm>
 
-using SniffMyShit::ParsedOptions, SniffMyShit::short_options, SniffMyShit::Options;
+using SniffMyShit::ParsedOptions, SniffMyShit::short_options, SniffMyShit::Options, std::ranges::transform;
 
 std::unique_ptr<ParsedOptions> SniffMyShit::parseOptions(int argc, char *argv[]) {
   int optionIndex = 0;

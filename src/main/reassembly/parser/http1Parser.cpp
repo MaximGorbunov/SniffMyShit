@@ -1,5 +1,8 @@
 #include "http1Parser.h"
+
+#include <algorithm>
 #include <iostream>
+#include <memory>
 
 using std::unique_ptr, std::make_unique, std::size_t, std::string, std::isprint, std::stoi, std::transform,
     std::tolower, std::runtime_error, SniffMyShit::ParseResult;
@@ -31,13 +34,13 @@ ParseResult parse_http1_request(const char *data, size_t length) {
       && data[i + 2] == '\r' && data[i + 3] == '\n')) {
     if (data[i] == ':' && key.empty()) {
       key = string(&data[start], i - start); // Also minus :
-      transform(key.begin(), key.end(), key.begin(),
-                [](unsigned char c) { return tolower(c); });
+      std::ranges::transform(key, key.begin(),
+                             [](unsigned char c) { return tolower(c); });
       start = i + 2;
     } else if (data[i] == '\r' && data[i + 1] == '\n') {
       value = string(&data[start], i - start);
-      transform(value.begin(), value.end(), value.begin(),
-                [](unsigned char c) { return tolower(c); });
+      std::ranges::transform(value, value.begin(),
+                             [](unsigned char c) { return tolower(c); });
       request->headers[key] = value;
       key = "";
       start = i + 2;
@@ -46,8 +49,8 @@ ParseResult parse_http1_request(const char *data, size_t length) {
   }
   // add last header
   value = string(&data[start], i - start);
-  transform(value.begin(), value.end(), value.begin(),
-            [](unsigned char c) { return tolower(c); });
+  std::ranges::transform(value, value.begin(),
+                         [](unsigned char c) { return tolower(c); });
   request->headers[key] = value;
   i += 4; // since we end at \r\n\r\n
   start = i;
@@ -132,13 +135,13 @@ ParseResult parse_http1_response(const char *data, size_t length) {
       && data[i + 2] == '\r' && data[i + 3] == '\n')) {
     if (data[i] == ':' && key.empty()) {
       key = string(&data[start], i - start); // Also minus :
-      transform(key.begin(), key.end(), key.begin(),
-                [](unsigned char c) { return tolower(c); });
+      std::ranges::transform(key, key.begin(),
+                             [](unsigned char c) { return tolower(c); });
       start = i + 2;
     } else if (data[i] == '\r' && data[i + 1] == '\n') {
       value = string(&data[start], i - start);
-      transform(value.begin(), value.end(), value.begin(),
-                [](unsigned char c) { return tolower(c); });
+      std::ranges::transform(value, value.begin(),
+                             [](unsigned char c) { return tolower(c); });
       response->headers[key] = value;
       key = "";
       start = i + 2;
@@ -147,8 +150,8 @@ ParseResult parse_http1_response(const char *data, size_t length) {
   }
   // add last header
   value = string(&data[start], i - start);
-  transform(value.begin(), value.end(), value.begin(),
-            [](unsigned char c) { return tolower(c); });
+  std::ranges::transform(value, value.begin(),
+                         [](unsigned char c) { return tolower(c); });
   response->headers[key] = value;
   i += 4; // since we end at \r\n\r\n
   start = i;

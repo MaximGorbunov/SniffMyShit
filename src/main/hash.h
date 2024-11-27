@@ -1,8 +1,6 @@
 #ifndef SNIFFMYSHIT_SRC_MAIN_HASH_H_
 #define SNIFFMYSHIT_SRC_MAIN_HASH_H_
 
-#include <unordered_map>
-
 namespace SniffMyShit {
 template<class T>
 inline void hash_combine(std::size_t &s, const T &v) {

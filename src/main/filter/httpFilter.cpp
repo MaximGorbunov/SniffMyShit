@@ -16,16 +16,16 @@ void SniffMyShit::HttpFilter::handle(std::unique_ptr<Data> data) {
   if (httpData->http_info.side == HTTP_REQUEST) {
     // check if fit
     auto request = dynamic_cast<HttpRequest*>(httpData->http_info.entity.get());
-    bool fit = std::all_of(request_url_filters->begin(), request_url_filters->end(), [request](const std::string &filter){
+    bool fit = std::ranges::all_of(*request_url_filters, [request](const std::string &filter){
       return request->path.find(filter) != std::string::npos;
     });
-    fit = fit && std::all_of(request_headers_filters->begin(), request_headers_filters->end(), [request](const std::pair<std::string, std::string> &filter){
+    fit = fit && std::ranges::all_of(*request_headers_filters, [request](const std::pair<std::string, std::string> &filter){
       if (auto headerSearch = request->headers.find(filter.first); headerSearch != request->headers.end()) {
         return headerSearch->second.find(filter.second) != std::string::npos;
       }
       return false;
     });
-    fit = fit && std::all_of(request_body_filters->begin(), request_body_filters->end(), [request](std::string filter){
+    fit = fit && std::ranges::all_of(*request_body_filters, [request](const std::string &filter){
       return request->body.find(filter) != std::string::npos;
     });
     if (fit) {
@@ -35,16 +35,16 @@ void SniffMyShit::HttpFilter::handle(std::unique_ptr<Data> data) {
     if (auto requestSearch = requests_map->find(httpData->http_info.stream_id); requestSearch != requests_map->end()) {
       auto request = requestSearch->second.get();
       auto response = dynamic_cast<HttpResponse*>(httpData->http_info.entity.get());
-      bool fit = std::all_of(response_status_filters->begin(), response_status_filters->end(), [response](const std::string &filter){
+      bool fit = std::ranges::all_of(*response_status_filters, [response](const std::string &filter){
         return response->status_code.find(filter) != std::string::npos;
       });
-      fit = fit && std::all_of(response_headers_filters->begin(), response_headers_filters->end(), [response](const std::pair<std::string, std::string> &filter){
+      fit = fit && std::ranges::all_of(*response_headers_filters, [response](const std::pair<std::string, std::string> &filter){
         if (auto headerSearch = response->headers.find(filter.first); headerSearch != response->headers.end()) {
           return headerSearch->second.find(filter.second) != std::string::npos;
         }
         return false;
       });
-      fit = fit && std::all_of(response_body_filters->begin(), response_body_filters->end(), [response](std::string filter){
+      fit = fit && std::ranges::all_of(*response_body_filters, [response](const std::string &filter){
         return response->body.find(filter) != std::string::npos;
       });
       if (fit) {

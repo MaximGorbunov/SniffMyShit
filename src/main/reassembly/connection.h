@@ -21,10 +21,10 @@ struct Connection {
     return !(rhs == *this);
   }
   Connection() : src_port(0), src_addr(), dst_port(0), dst_addr() {}
-  Connection(uint32_t a_src_port,
-             pcpp::IPAddress a_src_addr,
-             uint32_t a_dst_port,
-             pcpp::IPAddress a_dst_addr)
+  Connection(const uint32_t a_src_port,
+             const pcpp::IPAddress &a_src_addr,
+             const uint32_t a_dst_port,
+             const pcpp::IPAddress &a_dst_addr)
       : src_port(a_src_port), src_addr(a_src_addr), dst_port(a_dst_port), dst_addr(a_dst_addr) {}
 };
 
@@ -57,11 +57,11 @@ struct std::hash<pcpp::IPAddress> {
       return s.getIPv4().toInt();
     } else {
       auto data = s.getIPv6().toBytes();
-      std::size_t hash = 0;
+      std::size_t result = 0;
       for (std::size_t i = 0; i < 16; ++i) {
-        hash ^= std::hash<uint8_t>{}(data[i]) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+        result ^= std::hash<uint8_t>{}(data[i]) + 0x9e3779b9 + (result << 6) + (result >> 2);
       }
-      return hash;
+      return result;
     }
   }
 };

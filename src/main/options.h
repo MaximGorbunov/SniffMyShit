@@ -4,18 +4,18 @@
 #include <string>
 #include <getopt.h>
 #include <memory>
-#include <iostream>
 #include <vector>
+#include <unordered_map>
 
 namespace SniffMyShit {
 #ifdef __APPLE__
 static const char *const short_options = "i:t:p:u:S:h:H:b:B:";
 #else
-static const char *const short_options = "i::t::p:u::S::h::H::b::B::";
+static const char *const short_options = "i:t:p:u:S:h:H:b:B:";
 #endif
 
 // @formatter:off
-static struct option Options[] = {
+[[maybe_unused]]static struct option Options[] = {
     { "interface",      optional_argument, nullptr, 'i' },
     { "time",           optional_argument, nullptr, 't' },
     { "request-url",           optional_argument, nullptr, 'u' },
@@ -26,20 +26,20 @@ static struct option Options[] = {
     { "response-body",           optional_argument, nullptr, 'B' },
     { nullptr,          0,               nullptr,    0   }
 };
-// @formatter:on
+    // @formatter:on
 
-struct ParsedOptions {
-  std::string interface;
-  uint32_t time;
-  uint16_t port;
-  std::vector<std::string> request_url_filters;
-  std::unordered_map<std::string, std::string> request_headers_filters;
-  std::vector<std::string> request_body_filters;
-  std::vector<std::string> response_status_filters;
-  std::unordered_map<std::string, std::string> response_headers_filters;
-  std::vector<std::string> response_body_filters;
-};
+    struct ParsedOptions {
+        std::string interface;
+        uint32_t time;
+        uint16_t port;
+        std::vector<std::string> request_url_filters;
+        std::unordered_map<std::string, std::string> request_headers_filters;
+        std::vector<std::string> request_body_filters;
+        std::vector<std::string> response_status_filters;
+        std::unordered_map<std::string, std::string> response_headers_filters;
+        std::vector<std::string> response_body_filters;
+    };
 
-std::unique_ptr<ParsedOptions> parseOptions(int argc, char *argv[]);
+    std::unique_ptr<ParsedOptions> parseOptions(int argc, char *argv[]);
 }
 #endif //SNIFFMYSHIT_SRC_MAIN_OPTIONS_H_

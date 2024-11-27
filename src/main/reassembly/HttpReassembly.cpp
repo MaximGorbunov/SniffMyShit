@@ -66,8 +66,6 @@ void HttpReassembly::handle(std::unique_ptr<Data> data) {
       fragments->insert(fragments->end(),
                         tcp_stream_data,
                         tcp_stream_data + tcpDataLength);
-      fragment_data = fragments->data();
-      fragment_len = fragments->size();
       parse_result = http_parser.parse(fragments->data(), fragments->size(), httpData->side);
       parse_result.parsed_bytes -= old_size; // adjust to include only incoming bytes
     } else {
