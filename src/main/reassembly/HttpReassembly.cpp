@@ -96,8 +96,8 @@ void HttpReassembly::handle(std::unique_ptr<Data> data) {
       } else {
         searchConnection->second.response_stream_id++;
       }
-      HttpFilterData data {connectionData, HttpInfo{std::move(parse_result.request), fragment_key.stream_id, httpData->side}};
-      pass_next(std::make_unique<Data>(Data{HTTP_FILTER_TYPE, reinterpret_cast<void *>(&data)}));
+      HttpFilterData http_filter_data {connectionData, HttpInfo{std::move(parse_result.request), fragment_key.stream_id, httpData->side}};
+      pass_next(std::make_unique<Data>(Data{HTTP_FILTER_TYPE, reinterpret_cast<void *>(&http_filter_data)}));
     }
   }
 }

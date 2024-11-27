@@ -56,9 +56,7 @@ ParseResult parse_http1_request(const char *data, size_t length) {
   size_t expectedLength = 0;
   if (auto transferEncodingHeaderSearch = request->headers.find("transfer-encoding"); transferEncodingHeaderSearch
       != request->headers.end()) {
-    string value = transferEncodingHeaderSearch->second;
-    transform(value.begin(), value.end(), value.begin(), [](unsigned char c) { return tolower(c); });
-    if (value == "chunked") {
+    if (transferEncodingHeaderSearch->second == "chunked") {
       //iterate over each chunk
       size_t chunk_hex_start = start;
       while (i < length - 1 && !(data[i] != '\r' && data[i + 1] != '\n' && data[i + 2] == '0' && data[i + 3] != '\r'
@@ -160,9 +158,7 @@ ParseResult parse_http1_response(const char *data, size_t length) {
   //chunked encoding support
   if (auto transferEncodingHeaderSearch = response->headers.find("transfer-encoding"); transferEncodingHeaderSearch
       != response->headers.end()) {
-    string value = transferEncodingHeaderSearch->second;
-    transform(value.begin(), value.end(), value.begin(), [](unsigned char c) { return tolower(c); });
-    if (value == "chunked") {
+    if (transferEncodingHeaderSearch->second == "chunked") {
       //iterate over each chunk
       size_t chunk_hex_start = start;
       while (i < length - 1 && !(data[i] != '\r' && data[i + 1] != '\n' && data[i + 2] == '0' && data[i + 3] != '\r'

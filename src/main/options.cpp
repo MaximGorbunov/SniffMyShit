@@ -5,7 +5,8 @@ using SniffMyShit::ParsedOptions, SniffMyShit::short_options, SniffMyShit::Optio
 std::unique_ptr<ParsedOptions> SniffMyShit::parseOptions(int argc, char *argv[]) {
   int optionIndex = 0;
   int opt;
-  auto options = std::make_unique<ParsedOptions>(ParsedOptions{"", 10, 0});
+  auto options = std::make_unique<ParsedOptions>(ParsedOptions{});
+  options->time = 10;
   while ((opt = getopt_long(argc, argv, short_options, Options, &optionIndex)) != -1) {
     switch (opt) {
       case 'i':
@@ -37,7 +38,7 @@ std::unique_ptr<ParsedOptions> SniffMyShit::parseOptions(int argc, char *argv[])
           auto delimiter = header.find(':');
           if (delimiter != std::string::npos) {
             auto key = header.substr(0, delimiter);
-            auto value = header.substr(delimiter+1);
+            auto value = header.substr(delimiter + 1);
             transform(key.begin(), key.end(), key.begin(),
                       [](unsigned char c) { return tolower(c); });
             transform(value.begin(), value.end(), value.begin(),
@@ -64,7 +65,7 @@ std::unique_ptr<ParsedOptions> SniffMyShit::parseOptions(int argc, char *argv[])
           auto delimiter = header.find(':');
           if (delimiter != std::string::npos) {
             auto key = header.substr(0, delimiter);
-            auto value = header.substr(delimiter+1);
+            auto value = header.substr(delimiter + 1);
             transform(key.begin(), key.end(), key.begin(),
                       [](unsigned char c) { return tolower(c); });
             transform(value.begin(), value.end(), value.begin(),
