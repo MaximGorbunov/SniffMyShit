@@ -2,6 +2,10 @@
 
 **SniffMyShit** is a packet interception tool designed to filter and display HTTP request and response data based on user-defined criteria. It provides a flexible way to monitor network traffic on a specific interface, analyze HTTP headers, bodies, and more.
 
+## Protocols
+* HTTP1 
+* HTTP2 TBD
+
 ## Features
 - Intercept HTTP packets.
 - Apply various filters to extract relevant data.
