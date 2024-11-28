@@ -1,7 +1,7 @@
 #!/bin/bash
 
-linux_images=("pcap-linux-armv5-musl" "pcap-linux-armv6-musl" "pcap-linux-armv7l-musl" "pcap-linux-armv8-musl" "pcap-linux-arm64" "pcap-linux-amd64")
-linux_archs=("linux-armv5-musl" "linux-armv6-musl" "linux-armv7l-musl" "linux-arm64-musl" "linux-arm64" "linux-x86_64-full")
+linux_images=("pcap-linux-armv5-musl" "pcap-linux-armv6-musl" "pcap-linux-armv7l-musl" "pcap-linux-armv8-musl" "pcap-linux-arm64" "pcap-linux-amd64" "pcap-linux-arm64-musl")
+linux_archs=("linux-armv5-musl" "linux-armv6-musl" "linux-armv7l-musl" "linux-arm64-musl" "linux-arm64" "linux-x86_64-full" "linux-arm64-musl")
 linux_hosts=("arm" "arm" "arm" "arm" "arm64" "amd64" "amd64")
 current_dir=$(pwd)
 parent_dir=$(dirname "$current_dir")
@@ -28,7 +28,7 @@ for i in "${!linux_images[@]}"; do
 done
 
 ### Stage 2. Build executable
-build_dirs=("linux-armv5-musl" "linux-armv6-musl" "linux-armv7l-musl" "linux-armv8-musl" "linux-arm64" "linux-amd64")
+build_dirs=("linux-armv5-musl" "linux-armv6-musl" "linux-armv7l-musl" "linux-armv8-musl" "linux-arm64" "linux-amd64" "linux-arm64-musl")
 
 for i in "${!linux_images[@]}"; do
   image=${linux_images[$i]}
