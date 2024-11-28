@@ -1,0 +1,23 @@
+ARG ARCH
+FROM dockcross/${ARCH}
+ARG HOST
+
+# Install libpcap for Pcap++
+RUN cd /tmp && \
+    git clone https://github.com/the-tcpdump-group/libpcap.git && \
+    cd libpcap && \
+    ./autogen.sh && \
+    ./configure --host=$HOST && \
+    make && \
+    make install
+
+# Install Pcap++
+RUN cd /tmp && \
+    git clone https://github.com/seladb/PcapPlusPlus.git && \
+    cd PcapPlusPlus && \
+    cmake -S . -B build && \
+    cmake --build build && \
+    cd build && \
+    cmake --install .
+
+CMD ["/bin/bash"]

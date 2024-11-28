@@ -12,9 +12,10 @@
 - Display request and response details based on filters.
 - Customizable interface selection for monitoring.
 
-## Installation
-To compile and use **SniffMyShit**, make sure you have a C++ compiler and required libraries for network packet interception (e.g., libpcap).
-
+## Build
+```bash
+cmake -S . -B build && cmake --build build
+```
 ## Usage
 
 Run the program with various options to filter packets and display the desired information.
