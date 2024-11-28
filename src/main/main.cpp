@@ -50,8 +50,8 @@ PcapLiveDevice *chooseLiveDevice(const string &chosenInterface) {
 int main(int argc, char *argv[]) {
   auto options = parseOptions(argc, argv);
   PcapLiveDevice *device = chooseLiveDevice(options->interface);
-  if (!device->open(PcapLiveDevice::DeviceConfiguration{pcpp::PcapLiveDevice::Promiscuous, 0, 10 * 1024 * 1024,
-                                                        pcpp::PcapLiveDevice::PCPP_INOUT, 10 * 1024 * 1024})) {
+  if (!device->open(PcapLiveDevice::DeviceConfiguration{pcpp::PcapLiveDevice::Promiscuous, 0, 2 * 1024 * 1024,
+                                                        pcpp::PcapLiveDevice::PCPP_INOUT, 2 * 1024 * 1024})) {
     std::cout << "Failed to open device!" << std::endl;
     return 1;
   }
