@@ -3,7 +3,7 @@
 #include <memory>
 #include <TcpReassembly.h>
 
-namespace SniffMyShit {
+namespace sniff_my_shit {
 struct Data {
   uint32_t type;
   void *payload;
@@ -21,7 +21,7 @@ class Handler {
   }
 
   virtual void connection_closed(const pcpp::ConnectionData &connectionData) {
-    if (next_ != nullptr) {
+    if (next_ != nullptr && next_.get() != this) {
       next_->connection_closed(connectionData);
     }
   };

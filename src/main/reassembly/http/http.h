@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 
+namespace sniff_my_shit {
 struct HttpEntity {
   std::unordered_map<std::string, std::string> headers;
   std::string body;
@@ -20,4 +21,5 @@ struct HttpResponse : HttpEntity {
   std::string status_text;
   bool fit_filter;
 };
+}
 #endif //SNIFFMYSHIT_SRC_MAIN_REASSEMBLY_HTTP_HTTP_H_

@@ -11,7 +11,7 @@
 #define HTTP_RESPONSE  1
 #endif
 
-namespace SniffMyShit {
+namespace sniff_my_shit {
 
 // There might be two cases or even both of them:
 // 1. Http fragmented in a way that packet here won't contain complete HTTP entity
@@ -21,11 +21,11 @@ void HttpReassembly::handle(std::unique_ptr<Data> data) {
     throw std::runtime_error("Unexpected data type in HTTP handle: " + std::to_string(data->type));
   }
 
-  auto httpData = static_cast<HttpReassemblyData *>(data->payload);
-  size_t tcpDataLength = httpData->tcp_stream_data->getDataLength();
+  auto *http_data = static_cast<HttpReassemblyData *>(data->payload);
+  size_t tcp_data_length = http_data->tcp_stream_data->getDataLength();
 
-  auto connection = httpData->tcp_stream_data->getConnectionData();
-  SniffMyShit::Connection connectionData{
+  auto connection = http_data->tcp_stream_data->getConnectionData();
+  sniff_my_shit::Connection connection_data{
       connection.srcPort,
       connection.srcIP,
       connection.dstPort,
@@ -33,69 +33,70 @@ void HttpReassembly::handle(std::unique_ptr<Data> data) {
   };
 
   bool fragmented = false;
-  auto searchConnection = fragment_map_.find(connectionData);
+  auto search_connection = fragment_map_.find(connection_data);
   std::vector<uint8_t> *fragments = nullptr;
-  FragmentKey fragment_key{0, httpData->side};
-  if (searchConnection == fragment_map_.end()) {
-    fragment_map_.insert({connectionData, ConnectionInfo{0, 0, std::unique_ptr<FragmentsMap>(nullptr)}});
-    searchConnection = fragment_map_.find(connectionData);
+  FragmentKey fragment_key{.stream_id=0, .side=http_data->side};
+  if (search_connection == fragment_map_.end()) {
+    fragment_map_.insert({connection_data, ConnectionInfo{.request_stream_id=0, .response_stream_id=0, .fragment_map=std::unique_ptr<FragmentsMap>(nullptr)}});
+    search_connection = fragment_map_.find(connection_data);
   } else {
-    if (httpData->side == HTTP_REQUEST) {
-      fragment_key.stream_id = searchConnection->second.request_stream_id;
+    if (http_data->side == HTTP_REQUEST) {
+      fragment_key.stream_id = search_connection->second.request_stream_id;
     } else {
-      fragment_key.stream_id = searchConnection->second.response_stream_id;
+      fragment_key.stream_id = search_connection->second.response_stream_id;
     }
-    if (searchConnection->second.fragment_map != nullptr) {
-      if (auto searchFragments = searchConnection->second.fragment_map->find(fragment_key); searchFragments
-          != searchConnection->second.fragment_map->end()) {
-        fragments = &searchFragments->second;
+    if (search_connection->second.fragment_map != nullptr) {
+      if (auto search_fragments = search_connection->second.fragment_map->find(fragment_key); search_fragments
+          != search_connection->second.fragment_map->end()) {
+        fragments = &search_fragments->second;
         fragmented = !fragments->empty();
       }
     }
   }
 
   ParseResult parse_result;
-  const uint8_t *tcp_stream_data = httpData->tcp_stream_data->getData();
+  const uint8_t *tcp_stream_data = http_data->tcp_stream_data->getData();
 
   const uint8_t *fragment_data;
   std::size_t fragment_len;
   std::size_t index = 0;
-  while (index < tcpDataLength) {
+  while (index < tcp_data_length) {
     if (fragmented) { // there is ongoing fragmented request we're need to add new data to it
       auto old_size = fragments->size();
       fragments->insert(fragments->end(),
                         tcp_stream_data,
-                        tcp_stream_data + tcpDataLength);
-      parse_result = http_parser.parse(fragments->data(), fragments->size(), httpData->side);
+                        tcp_stream_data + tcp_data_length);
+      parse_result = http_parser_.parse(fragments->data(), fragments->size(), http_data->side);
       parse_result.parsed_bytes -= old_size; // adjust to include only incoming bytes
     } else {
       fragment_data = tcp_stream_data;
-      fragment_len = tcpDataLength;
-      parse_result = http_parser.parse(tcp_stream_data, tcpDataLength, httpData->side);
+      fragment_len = tcp_data_length;
+      parse_result = http_parser_.parse(tcp_stream_data, tcp_data_length, http_data->side);
     }
     if (parse_result.fragmented) {
-      index = tcpDataLength;
+      index = tcp_data_length;
       if (!fragmented) { // first fragment, need to add to vector, if not first should be already added
-        searchConnection->second.fragment_map = std::make_unique<FragmentsMap>();
-        searchConnection->second.fragment_map->insert({fragment_key,
-                                                       std::vector<uint8_t>(fragment_data,
-                                                                            fragment_data + fragment_len)});
+        search_connection->second.fragment_map = std::make_unique<FragmentsMap>();
+        search_connection->second.fragment_map->insert({fragment_key,
+                                                        std::vector<uint8_t>(fragment_data,
+                                                                             fragment_data + fragment_len)});
       }
     } else {
-      tcpDataLength -= parse_result.parsed_bytes;
+      tcp_data_length -= parse_result.parsed_bytes;
       tcp_stream_data += parse_result.parsed_bytes;
       index += parse_result.parsed_bytes;
       if (fragmented) { // all fragments gathered, need to clean up
-        searchConnection->second.fragment_map->erase(fragment_key);
+        search_connection->second.fragment_map->erase(fragment_key);
       }
       fragmented = false;
-      if (httpData->side == HTTP_REQUEST) {
-        searchConnection->second.request_stream_id++;
+      if (http_data->side == HTTP_REQUEST) {
+        search_connection->second.request_stream_id++;
       } else {
-        searchConnection->second.response_stream_id++;
+        search_connection->second.response_stream_id++;
       }
-      HttpFilterData http_filter_data {connectionData, HttpInfo{std::move(parse_result.request), fragment_key.stream_id, httpData->side}};
-      pass_next(std::make_unique<Data>(Data{HTTP_FILTER_TYPE, reinterpret_cast<void *>(&http_filter_data)}));
+      HttpFilterData http_filter_data
+          {.connection=connection_data, .http_info=HttpInfo{.entity=std::move(parse_result.request), .stream_id=fragment_key.stream_id, .side=http_data->side}};
+      pass_next(std::make_unique<Data>(Data{.type=HTTP_FILTER_TYPE, .payload=reinterpret_cast<void *>(&http_filter_data)}));
     }
   }
 }

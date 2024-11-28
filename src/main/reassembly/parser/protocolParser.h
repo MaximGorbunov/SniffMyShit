@@ -12,7 +12,7 @@
 #define HTTP_RESPONSE  1
 #endif
 
-namespace SniffMyShit {
+namespace sniff_my_shit {
 struct ParseResult {
   uint64_t parsed_bytes;
   bool fragmented;

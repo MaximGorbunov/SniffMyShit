@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include "../hash.h"
 
-namespace SniffMyShit {
+namespace sniff_my_shit {
 struct Connection {
   uint16_t src_port;
   pcpp::IPAddress src_addr;
@@ -67,23 +67,23 @@ struct std::hash<pcpp::IPAddress> {
 };
 
 template<>
-struct std::hash<SniffMyShit::Connection> {
-  std::size_t operator()(const SniffMyShit::Connection &s) const noexcept {
+struct std::hash<sniff_my_shit::Connection> {
+  std::size_t operator()(const sniff_my_shit::Connection &s) const noexcept {
     std::size_t res = 0;
-    SniffMyShit::hash_combine(res, s.src_port);
-    SniffMyShit::hash_combine(res, s.src_addr.toString());
-    SniffMyShit::hash_combine(res, s.dst_port);
-    SniffMyShit::hash_combine(res, s.dst_addr.toString());
+    sniff_my_shit::hash_combine(res, s.src_port);
+    sniff_my_shit::hash_combine(res, s.src_addr.toString());
+    sniff_my_shit::hash_combine(res, s.dst_port);
+    sniff_my_shit::hash_combine(res, s.dst_addr.toString());
     return res;
   }
 };
 
 template<>
-struct std::hash<SniffMyShit::FragmentKey> {
-  std::size_t operator()(const SniffMyShit::FragmentKey &s) const noexcept {
+struct std::hash<sniff_my_shit::FragmentKey> {
+  std::size_t operator()(const sniff_my_shit::FragmentKey &s) const noexcept {
     std::size_t res = 0;
-    SniffMyShit::hash_combine(res, s.stream_id);
-    SniffMyShit::hash_combine(res, s.side);
+    sniff_my_shit::hash_combine(res, s.stream_id);
+    sniff_my_shit::hash_combine(res, s.side);
     return res;
   }
 };

@@ -15,7 +15,7 @@
 #define HTTP_RESPONSE  1
 #endif
 
-namespace SniffMyShit {
+namespace sniff_my_shit {
 struct HttpInfo {
   std::unique_ptr<HttpEntity> entity;
   uint32_t stream_id;
@@ -37,9 +37,9 @@ class HttpFilter : public Handler {
       std::unordered_map<std::string, std::string> *a_response_headers_filters,
       std::vector<std::string> *a_response_body_filters
   ) : Handler(std::unique_ptr<Handler>(nullptr)),
-      request_url_filters(a_request_url_filters),
-      request_headers_filters(a_request_headers_filters),
-      request_body_filters(a_request_body_filters),
+      request_url_filters_(a_request_url_filters),
+      request_headers_filters_(a_request_headers_filters),
+      request_body_filters_(a_request_body_filters),
       response_status_filters(a_response_status_filters),
       response_headers_filters(a_response_headers_filters),
       response_body_filters(a_response_body_filters) {}
@@ -47,9 +47,9 @@ class HttpFilter : public Handler {
   void connection_closed(const pcpp::ConnectionData &connectionData) override;
  private:
   std::unordered_map<Connection, std::unordered_map<uint32_t, std::unique_ptr<HttpEntity>>> requests_;
-  std::vector<std::string> *request_url_filters;
-  std::unordered_map<std::string, std::string> *request_headers_filters;
-  std::vector<std::string> *request_body_filters;
+  std::vector<std::string> *request_url_filters_;
+  std::unordered_map<std::string, std::string> *request_headers_filters_;
+  std::vector<std::string> *request_body_filters_;
   std::vector<std::string> *response_status_filters;
   std::unordered_map<std::string, std::string> *response_headers_filters;
   std::vector<std::string> *response_body_filters;

@@ -8,13 +8,16 @@
 #include "filter/httpFilter.h"
 #include "collections/concurrentQueue.h"
 
-using pcpp::RawPacket, pcpp::PcapLiveDevice, SniffMyShit::Handler, SniffMyShit::IpReassembly,
-    pcpp::PcapLiveDeviceList, std::string, SniffMyShit::ConcurrentQueue,
-    SniffMyShit::TcpReassembly, SniffMyShit::HttpReassembly, SniffMyShit::Data, SniffMyShit::parseOptions;
+using pcpp::RawPacket, pcpp::PcapLiveDevice,
+    pcpp::PcapLiveDeviceList, std::string, sniff_my_shit::ConcurrentQueue,
+    sniff_my_shit::TcpReassembly, sniff_my_shit::HttpReassembly, sniff_my_shit::Data, sniff_my_shit::parseOptions;
 
+namespace {
 ConcurrentQueue<RawPacket> packet_queue{};
 
-static void processPacket(const RawPacket *packet, [[maybe_unused]] PcapLiveDevice *dev, void *cookie) {
+void processPacket(const RawPacket *packet,
+                   [[maybe_unused]] PcapLiveDevice *dev,
+                   [[maybe_unused]] void *cookie) {
   packet_queue.push(*packet);
 }
 
@@ -42,12 +45,13 @@ PcapLiveDevice *chooseLiveDevice(const string &chosenInterface) {
   }
   return device;
 }
+}
 
 int main(int argc, char *argv[]) {
   auto options = parseOptions(argc, argv);
   PcapLiveDevice *device = chooseLiveDevice(options->interface);
   if (!device->open(PcapLiveDevice::DeviceConfiguration{pcpp::PcapLiveDevice::Promiscuous, 0, 10 * 1024 * 1024,
-                                                              pcpp::PcapLiveDevice::PCPP_INOUT, 10 * 1024 * 1024})) {
+                                                        pcpp::PcapLiveDevice::PCPP_INOUT, 10 * 1024 * 1024})) {
     std::cout << "Failed to open device!" << std::endl;
     return 1;
   }
@@ -55,7 +59,7 @@ int main(int argc, char *argv[]) {
   auto filter = pcpp::PortFilter{options->port, pcpp::Direction::SRC_OR_DST};
   device->setFilter(filter);
 
-  auto httpFilter = std::make_unique<SniffMyShit::HttpFilter>(
+  auto http_filter = std::make_unique<sniff_my_shit::HttpFilter>(
       &options->request_url_filters,
       &options->request_headers_filters,
       &options->request_body_filters,
@@ -63,9 +67,9 @@ int main(int argc, char *argv[]) {
       &options->response_headers_filters,
       &options->response_body_filters
   );
-  auto l7 = std::make_unique<SniffMyShit::HttpReassembly>(std::move(httpFilter));
-  auto l4 = std::make_unique<SniffMyShit::TcpReassembly>(std::move(l7));
-  auto l3 = SniffMyShit::IpReassembly(std::move(l4));
+  auto l7 = std::make_unique<sniff_my_shit::HttpReassembly>(std::move(http_filter));
+  auto l4 = std::make_unique<sniff_my_shit::TcpReassembly>(std::move(l7));
+  auto l3 = sniff_my_shit::IpReassembly(std::move(l4));
   device->startCapture(processPacket, nullptr);
   auto start = std::chrono::system_clock::now();
   while (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - start).count()
@@ -73,7 +77,7 @@ int main(int argc, char *argv[]) {
     RawPacket raw_packet;
     if (packet_queue.try_pop(raw_packet)) {
       l3.handle(std::make_unique<Data>(
-          Data{IP_REASSEMBLY_TYPE, static_cast<void *>(&raw_packet)}
+          Data{.type=IP_REASSEMBLY_TYPE, .payload=static_cast<void *>(&raw_packet)}
       ));
     }
   }

@@ -7,24 +7,24 @@
 #include <vector>
 #include <unordered_map>
 
-namespace SniffMyShit {
+namespace sniff_my_shit {
 #ifdef __APPLE__
-static const char *const short_options = "i:t:p:u:S:h:H:b:B:";
+static const char *const kShortOptions = "i:t:p:u:S:h:H:b:B:";
 #else
-static const char *const short_options = "i:t:p:u:S:h:H:b:B:";
+static const char *const kShortOptions = "i:t:p:u:S:h:H:b:B:";
 #endif
 
 // @formatter:off
-[[maybe_unused]]static struct option Options[] = {
-    { "interface",      optional_argument, nullptr, 'i' },
-    { "time",           optional_argument, nullptr, 't' },
-    { "request-url",           optional_argument, nullptr, 'u' },
-    { "response-status",           optional_argument, nullptr, 'S' },
-    { "request-header",           optional_argument, nullptr, 'h' },
-    { "response-header",           optional_argument, nullptr, 'H' },
-    { "request-body",           optional_argument, nullptr, 'b' },
-    { "response-body",           optional_argument, nullptr, 'B' },
-    { nullptr,          0,               nullptr,    0   }
+[[maybe_unused]]static struct option options[] = {
+    { .name="interface",          .has_arg=optional_argument, .flag=nullptr, .val='i' },
+    { .name="time",               .has_arg=optional_argument, .flag=nullptr, .val='t' },
+    { .name="request-url",        .has_arg=optional_argument, .flag=nullptr, .val='u' },
+    { .name="response-status",    .has_arg=optional_argument, .flag=nullptr, .val='S' },
+    { .name="request-header",     .has_arg=optional_argument, .flag=nullptr, .val='h' },
+    { .name="response-header",    .has_arg=optional_argument, .flag=nullptr, .val='H' },
+    { .name="request-body",       .has_arg=optional_argument, .flag=nullptr, .val='b' },
+    { .name="response-body",      .has_arg=optional_argument, .flag=nullptr, .val='B' },
+    { .name=nullptr,              .has_arg=0,                 .flag=nullptr, .val=0   }
 };
     // @formatter:on
 
