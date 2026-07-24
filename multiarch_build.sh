@@ -17,6 +17,8 @@ for i in "${!linux_images[@]}"; do
     echo "Image $image already exists locally."
   else
     echo "Image $image not found. Building it now..."
+    echo docker build --platform linux/amd64 --build-arg ARCH=$arch --build-arg HOST=$host -t $image -f Dockerfile_dockcross .
+ 
     docker build --platform linux/amd64 --build-arg ARCH=$arch --build-arg HOST=$host -t $image -f Dockerfile_dockcross .
     if [ $? -eq 0 ]; then
       echo "Image $image built successfully."
@@ -34,7 +36,7 @@ for i in "${!linux_images[@]}"; do
   image=${linux_images[$i]}
   build_dir=${build_dirs[$i]}
   echo "Creating binaries for $image in $build_dir"
-  docker run --platform linux/amd64 -v $current_dir:/tmp/SniffMyShit $image bash -c "apt install -y cppcheck && cd /tmp/SniffMyShit && cmake -S . -B $build_dir && cmake --build $build_dir"
+  docker run --platform linux/amd64 -v $current_dir:/tmp/SniffMyShit $image bash -c "apt install -y cppcheck && cd /tmp/SniffMyShit && cmake -S . -B $build_dir -DCMAKE_PREFIX_PATH=/usr/local -DCMAKE_BUILD_TYPE=Release && cmake --build $build_dir"
 done
 
 ### Stage 3. Put binaries in binaries dir

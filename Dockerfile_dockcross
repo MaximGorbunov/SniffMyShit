@@ -4,18 +4,19 @@ ARG HOST
 
 # Install libpcap for Pcap++
 RUN cd /tmp && \
-    git clone https://github.com/the-tcpdump-group/libpcap.git && \
+    git clone https://github.com/the-tcpdump-group/libpcap.git --branch libpcap-1.10.5 && \
     cd libpcap && \
     ./autogen.sh && \
-    ./configure --host=$HOST && \
+    ./configure --host=$HOST --prefix=/usr/local && \
     make && \
-    make install
+    make install && \
+    ldconfig
 
 # Install Pcap++
 RUN cd /tmp && \
-    git clone https://github.com/seladb/PcapPlusPlus.git && \
+    git clone https://github.com/seladb/PcapPlusPlus.git --branch v24.09 && \
     cd PcapPlusPlus && \
-    cmake -S . -B build && \
+    cmake -S . -B build -DCMAKE_PREFIX_PATH=/usr/local && \
     cmake --build build && \
     cd build && \
     cmake --install .

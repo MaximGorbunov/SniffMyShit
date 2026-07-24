@@ -1,13 +1,13 @@
 #include <iostream>
 #include <string>
 #include "PcapLiveDeviceList.h"
-#include "IPLayer.h"
 #include "options.h"
-#include "IPReassembly.h"
 #include "reassembly/reassembly.h"
 #include "filter/httpFilter.h"
 #include "collections/concurrentQueue.h"
-
+#ifndef NDEBUG
+#include <cpptrace/cpptrace.hpp>
+#endif
 using pcpp::RawPacket, pcpp::PcapLiveDevice,
     pcpp::PcapLiveDeviceList, std::string, sniff_my_shit::ConcurrentQueue,
     sniff_my_shit::TcpReassembly, sniff_my_shit::HttpReassembly, sniff_my_shit::Data, sniff_my_shit::parseOptions;
@@ -48,6 +48,9 @@ PcapLiveDevice *chooseLiveDevice(const string &chosenInterface) {
 }
 
 int main(int argc, char *argv[]) {
+#ifndef NDEBUG
+  cpptrace::register_terminate_handler();
+#endif
   auto options = parseOptions(argc, argv);
   PcapLiveDevice *device = chooseLiveDevice(options->interface);
   if (!device->open(PcapLiveDevice::DeviceConfiguration{pcpp::PcapLiveDevice::Promiscuous, 0, 2 * 1024 * 1024,

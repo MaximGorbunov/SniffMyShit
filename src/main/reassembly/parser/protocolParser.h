@@ -1,6 +1,7 @@
 #ifndef SNIFFMYSHIT_SRC_MAIN_REASSEMBLY_PARSER_PROTOCOLPARSER_H_
 #define SNIFFMYSHIT_SRC_MAIN_REASSEMBLY_PARSER_PROTOCOLPARSER_H_
-#include <cinttypes>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include "../http/http.h"
 

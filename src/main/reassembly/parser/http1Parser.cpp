@@ -1,15 +1,32 @@
 #include "http1Parser.h"
 
 #include <algorithm>
+#include <fstream>
 #include <iostream>
 #include <memory>
+#include <sstream>
+#include <stdexcept>
 
-using std::unique_ptr, std::make_unique, std::size_t, std::string,
-    std::tolower, sniff_my_shit::ParseResult, sniff_my_shit::HttpRequest,
+using std::unique_ptr, std::make_unique, std::size_t, std::string, std::tolower,
+    sniff_my_shit::ParseResult, sniff_my_shit::HttpRequest,
     sniff_my_shit::HttpEntity, sniff_my_shit::HttpResponse;
 
 namespace {
-ParseResult parse_http1_request(const char *data, size_t length) {
+void dumpToBinFile(const char *filename, const char *data, size_t size) {
+  std::cout << "file size: " << size << std::endl;
+  if (size > 2 * 1024 * 1024)
+    return;
+  // Open in binary output mode
+  std::ofstream out_file(filename, std::ios::out | std::ios::binary);
+
+  if (out_file.is_open()) {
+    // Correct: Pass the data pointer and the explicit size
+    out_file.write(data, size);
+    out_file.close();
+  }
+}
+
+ParseResult parse_http1_request(const char *data, const size_t length) {
   auto request = make_unique<HttpRequest>();
   size_t start = 0;
   enum part { kMethod, kUrl, kVersion, kHeaders, kBody };
@@ -33,8 +50,8 @@ ParseResult parse_http1_request(const char *data, size_t length) {
   start = i;
 
   // read headers
-  while (i < length - 3 && (data[i] != '\r' || data[i + 1] != '\n'
-      || data[i + 2] != '\r' || data[i + 3] != '\n')) {
+  while (i < length - 4 && (data[i] != '\r' || data[i + 1] != '\n' ||
+                            data[i + 2] != '\r' || data[i + 3] != '\n')) {
     if (data[i] == ':' && key.empty()) {
       key = string(&data[start], i - start); // Also minus :
       std::ranges::transform(key, key.begin(),
@@ -57,59 +74,78 @@ ParseResult parse_http1_request(const char *data, size_t length) {
   request->headers[key] = value;
   i += 4; // since we end at \r\n\r\n
   start = i;
+  if (i >= length) {
+    return ParseResult{.parsed_bytes = 0,
+                       .fragmented = true,
+                       .request = unique_ptr<HttpEntity>(nullptr)};
+  }
 
-  //chunked encoding support
+  // chunked encoding support
   size_t expected_length = 0;
-  if (auto transfer_encoding_header_search = request->headers.find("transfer-encoding"); transfer_encoding_header_search
-      != request->headers.end()) {
+  if (auto transfer_encoding_header_search =
+          request->headers.find("transfer-encoding");
+      transfer_encoding_header_search != request->headers.end()) {
     if (transfer_encoding_header_search->second == "chunked") {
-      //iterate over each chunk
+      // iterate over each chunk
       size_t chunk_hex_start = start;
-      while (i < length - 1 && (data[i] == '\r' || data[i + 1] == '\n' || data[i + 2] != '0' || data[i + 3] == '\r'
-          || data[i + 4] == '\n')) {
-        while (i < length - 1 && data[i] != '\r' && data[i + 1] != '\n') { i++; }
-        if (i >= length - 1) {
-          return ParseResult{.parsed_bytes=0, .fragmented=true, .request=unique_ptr<HttpEntity>(nullptr)};
+      while (i < length - 1 && data[i] != '0' && data[i + 1] != '\r' &&
+             data[i + 2] != '\n') {
+        while (i < length - 1 && data[i] != '\r' && data[i + 1] != '\n') {
+          i++;
         }
-        expected_length = stoi(string(&data[chunk_hex_start], i - chunk_hex_start), nullptr, 16);
+        if (i >= length - 1) {
+          return ParseResult{.parsed_bytes = 0,
+                             .fragmented = true,
+                             .request = unique_ptr<HttpEntity>(nullptr)};
+        }
+        auto length_str = string(&data[chunk_hex_start], i - chunk_hex_start);
+        expected_length = stoi(length_str, nullptr, 16);
         i += 4 + expected_length;
         chunk_hex_start = i;
-
       }
-      if (data[i - 5] == '0' && data[i - 4] == '\r' && data[i - 3] == '\n' && data[i - 2] == '\r'
-          && data[i - 1] == '\n') {
+      if (data[i] == '0' && data[i + 1] == '\r' && data[i + 2] == '\n' &&
+          data[i + 3] == '\r' && data[i + 4] == '\n') {
         request->body = string(&data[start], i - start);
-        return ParseResult{.parsed_bytes=i, .fragmented=false, .request=std::move(request)};
+        return ParseResult{.parsed_bytes = i,
+                           .fragmented = false,
+                           .request = std::move(request)};
       }
-      return ParseResult{.parsed_bytes=0, .fragmented=true, .request=std::unique_ptr<HttpEntity>(nullptr)};
+      return ParseResult{.parsed_bytes = 0,
+                         .fragmented = true,
+                         .request = std::unique_ptr<HttpEntity>(nullptr)};
     }
-  }
-
-  //read body
-  auto content_length_search = request->headers.find("content-length");
-  if (content_length_search != request->headers.end()) {
-    expected_length = stoi(content_length_search->second);
-    if (length - start < expected_length) { //Not enough data to parse whole body
-      return ParseResult{.parsed_bytes=0, .fragmented=true, .request=unique_ptr<HttpEntity>(nullptr)};
+  } else {
+    // read body
+    auto content_length_search = request->headers.find("content-length");
+    if (content_length_search != request->headers.end()) {
+      expected_length = stoi(content_length_search->second);
+      if (length - start <
+          expected_length) { // Not enough data to parse whole body
+        return ParseResult{.parsed_bytes = 0,
+                           .fragmented = true,
+                           .request = unique_ptr<HttpEntity>(nullptr)};
+      }
+      request->body = string(&data[start], expected_length);
+      i += expected_length;
+      return ParseResult{.parsed_bytes = i,
+                         .fragmented = false,
+                         .request = std::move(request)};
     }
-    request->body = string(&data[start], expected_length);
-    return ParseResult{
-        .parsed_bytes=static_cast<uint64_t>(&data[start + expected_length] - data),
-        .fragmented=false,
-        .request=std::move(request)
-    };
-
-  }
-  if (data[i - 4] == '\r' && data[i - 3] == '\n' && data[i - 2] == '\r'
-      && data[i - 1] == '\n') { //No body expected
-    return ParseResult{.parsed_bytes=i, .fragmented=false, .request=std::move(request)};
+    if (data[i - 4] == '\r' && data[i - 3] == '\n' && data[i - 2] == '\r' &&
+        data[i - 1] == '\n') { // No body expected
+      return ParseResult{.parsed_bytes = i,
+                         .fragmented = false,
+                         .request = std::move(request)};
+    }
   }
   // Message doesn't end with \r\n\r\n means message fragmented
-  return ParseResult{.parsed_bytes=0, .fragmented=true, .request=unique_ptr<HttpEntity>(nullptr)};
+  return ParseResult{.parsed_bytes = 0,
+                     .fragmented = true,
+                     .request = unique_ptr<HttpEntity>(nullptr)};
 }
 
 ParseResult parse_http1_response(const char *data, size_t length) {
-  //parse method
+  // parse method
   auto response = make_unique<HttpResponse>();
   size_t start = 0;
   enum part { kProtocol, kStatusCode, kStatusText, kHeaders, kBody };
@@ -134,9 +170,9 @@ ParseResult parse_http1_response(const char *data, size_t length) {
   i += 2; // since we end at \r\n
   start = i;
 
-// read headers
-  while (i < length - 3 && (data[i] != '\r' || data[i + 1] != '\n'
-      || data[i + 2] != '\r' || data[i + 3] != '\n')) {
+  // read headers
+  while (i < length - 4 && (data[i] != '\r' || data[i + 1] != '\n' ||
+                            data[i + 2] != '\r' || data[i + 3] != '\n')) {
     if (data[i] == ':' && key.empty()) {
       key = string(&data[start], i - start); // Also minus :
       std::ranges::transform(key, key.begin(),
@@ -159,67 +195,85 @@ ParseResult parse_http1_response(const char *data, size_t length) {
   response->headers[key] = value;
   i += 4; // since we end at \r\n\r\n
   start = i;
+  if (i >= length) {
+    return ParseResult{.parsed_bytes = 0,
+                       .fragmented = true,
+                       .request = unique_ptr<HttpEntity>(nullptr)};
+  }
 
   size_t expected_length = 0;
 
-  //chunked encoding support
-  if (auto transfer_encoding_header_search = response->headers.find("transfer-encoding");
-      transfer_encoding_header_search
-          != response->headers.end()) {
+  // chunked encoding support
+  if (auto transfer_encoding_header_search =
+          response->headers.find("transfer-encoding");
+      transfer_encoding_header_search != response->headers.end()) {
     if (transfer_encoding_header_search->second == "chunked") {
-      //iterate over each chunk
+      // iterate over each chunk
       size_t chunk_hex_start = start;
-      while (i < length - 1 && (data[i] == '\r' || data[i + 1] == '\n' || data[i + 2] != '0' || data[i + 3] == '\r'
-          || data[i + 4] == '\n')) {
-        while (i < length - 1 && data[i] != '\r' && data[i + 1] != '\n') { i++; }
-        if (i >= length - 1) {
-          return ParseResult{.parsed_bytes=0, .fragmented=true, .request=unique_ptr<HttpEntity>(nullptr)};
+      while (i < length - 1 &&
+             (data[i] == '\r' || data[i + 1] == '\n' || data[i + 2] != '0' ||
+              data[i + 3] == '\r' || data[i + 4] == '\n')) {
+        while (i < length - 1 && data[i] != '\r' && data[i + 1] != '\n') {
+          i++;
         }
-        expected_length = stoi(string(&data[chunk_hex_start], i - chunk_hex_start), nullptr, 16);
+        if (i >= length - 1) {
+          return ParseResult{.parsed_bytes = 0,
+                             .fragmented = true,
+                             .request = unique_ptr<HttpEntity>(nullptr)};
+        }
+        auto length_str = string(&data[chunk_hex_start], i - chunk_hex_start);
+        expected_length = stoi(length_str, nullptr, 16);
         i += 4 + expected_length;
         chunk_hex_start = i;
-
       }
-      if (data[i - 5] == '0' && data[i - 4] == '\r' && data[i - 3] == '\n' && data[i - 2] == '\r'
-          && data[i - 1] == '\n') {
+      if (data[i - 5] == '0' && data[i - 4] == '\r' && data[i - 3] == '\n' &&
+          data[i - 2] == '\r' && data[i - 1] == '\n') {
         response->body = string(&data[start], i - start);
-        return ParseResult{.parsed_bytes=i, .fragmented=false, .request=std::move(response)};
+        return ParseResult{.parsed_bytes = i,
+                           .fragmented = false,
+                           .request = std::move(response)};
       }
-      return ParseResult{.parsed_bytes=0, .fragmented=true, .request=std::unique_ptr<HttpEntity>(nullptr)};
+      return ParseResult{.parsed_bytes = 0,
+                         .fragmented = true,
+                         .request = std::unique_ptr<HttpEntity>(nullptr)};
     }
-  }
-
-  //read body
-  auto content_length_search = response->headers.find("content-length");
-  if (content_length_search != response->headers.end()) {
-    expected_length = stoi(content_length_search->second);
-  }
-  if (expected_length > 0) {
-    if (length - start < expected_length) { //Not enough data to parse whole body
-      return ParseResult{.parsed_bytes=0, .fragmented=true, .request=unique_ptr<HttpEntity>(nullptr)};
+  } else {
+    // read body
+    auto content_length_search = response->headers.find("content-length");
+    if (content_length_search != response->headers.end()) {
+      expected_length = stoi(content_length_search->second);
     }
-    response->body = string(&data[start], expected_length);
-    return ParseResult{
-        .parsed_bytes=static_cast<uint64_t>(&data[start + expected_length] - data),
-        .fragmented=false,
-        .request=std::move(response)
-    };
-
+    if (expected_length > 0) {
+      if (length - start <
+          expected_length) { // Not enough data to parse whole body
+        return ParseResult{.parsed_bytes = 0,
+                           .fragmented = true,
+                           .request = unique_ptr<HttpEntity>(nullptr)};
+      }
+      response->body = string(&data[start], expected_length);
+      i += expected_length;
+      return ParseResult{.parsed_bytes = i,
+                         .fragmented = false,
+                         .request = std::move(response)};
+    }
+    if (data[i - 4] == '\r' && data[i - 3] == '\n' && data[i - 2] == '\r' &&
+        data[i - 1] == '\n') { // No body expected
+      return ParseResult{.parsed_bytes = i,
+                         .fragmented = false,
+                         .request = std::move(response)};
+    }
+    // Message doesn't end with \r\n\r\n means message fragmented
   }
-  if (data[i - 4] == '\r' && data[i - 3] == '\n' && data[i - 2] == '\r'
-      && data[i - 1] == '\n') { //No body expected
-    return ParseResult{.parsed_bytes=i, .fragmented=false, .request=std::move(response)};
-  }
-  // Message doesn't end with \r\n\r\n means message fragmented
-  return ParseResult{.parsed_bytes=0, .fragmented=true, .request=unique_ptr<HttpEntity>(nullptr)};
-
+  return ParseResult{.parsed_bytes = 0,
+                     .fragmented = true,
+                     .request = unique_ptr<HttpEntity>(nullptr)};
 }
-}
+} // namespace
 
-ParseResult sniff_my_shit::Http1Parser::parse(const uint8_t *data, size_t len, int8_t side) {
+ParseResult sniff_my_shit::Http1Parser::parse(const uint8_t *data, size_t len,
+                                              int8_t side) {
   if (side == HTTP_REQUEST) {
     return parse_http1_request(reinterpret_cast<const char *>(data), len);
   }
   return parse_http1_response(reinterpret_cast<const char *>(data), len);
-
 }
