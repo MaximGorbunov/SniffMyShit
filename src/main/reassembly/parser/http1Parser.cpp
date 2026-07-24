@@ -1,31 +1,13 @@
 #include "http1Parser.h"
 
 #include <algorithm>
-#include <fstream>
-#include <iostream>
 #include <memory>
-#include <sstream>
-#include <stdexcept>
 
 using std::unique_ptr, std::make_unique, std::size_t, std::string, std::tolower,
     sniff_my_shit::ParseResult, sniff_my_shit::HttpRequest,
     sniff_my_shit::HttpEntity, sniff_my_shit::HttpResponse;
 
 namespace {
-void dumpToBinFile(const char *filename, const char *data, size_t size) {
-  std::cout << "file size: " << size << std::endl;
-  if (size > 2 * 1024 * 1024)
-    return;
-  // Open in binary output mode
-  std::ofstream out_file(filename, std::ios::out | std::ios::binary);
-
-  if (out_file.is_open()) {
-    // Correct: Pass the data pointer and the explicit size
-    out_file.write(data, size);
-    out_file.close();
-  }
-}
-
 ParseResult parse_http1_request(const char *data, const size_t length) {
   auto request = make_unique<HttpRequest>();
   size_t start = 0;
